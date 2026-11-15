@@ -7,7 +7,7 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
-jobs:
+jobs:\
   build-test-analyze:
     name: Build, Test & SonarQube Scan
     runs-on: ubuntu-latest
