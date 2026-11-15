@@ -1,0 +1,23 @@
+# Compiled output
+out/
+bin/
+build/
+target/
+
+# Testing & Coverage binaries (automatically downloaded by build scripts and CI)
+lib/
+
+# SonarQube Scanner temporary directory
+.scannerwork/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS specific files
+.DS_Store
+Thumbs.db
