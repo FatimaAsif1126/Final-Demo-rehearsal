@@ -98,5 +98,7 @@ jobs:
             -Dsonar.tests=src/test/java
             -Dsonar.java.binaries=out/classes
             -Dsonar.java.test.binaries=out/test-classes
-            -Dsonar.coverage.exclusions=src/test/**,**/*Test.java,**/test/**
+            -Dsonar.coverage.inclusions=src/main/java/**/*.java
+            -Dsonar.coverage.exclusions=**/*.ps1,**/*.sh,**/*.bat,**/*.cmd,src/test/**,**/*Test.java,**/test/**
+            -Dsonar.exclusions=*.ps1,*.sh,*.bat,*.cmd
             -Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml
