@@ -94,4 +94,9 @@ jobs:
           args: >
             -Dsonar.organization=sonarqubecloudsqetest
             -Dsonar.projectKey=SonarQubeCloudSQETest_java-sonar-lab
+            -Dsonar.sources=src/main/java
+            -Dsonar.tests=src/test/java
+            -Dsonar.java.binaries=out/classes
+            -Dsonar.java.test.binaries=out/test-classes
+            -Dsonar.coverage.exclusions=src/test/**,**/*Test.java,**/test/**
             -Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml
