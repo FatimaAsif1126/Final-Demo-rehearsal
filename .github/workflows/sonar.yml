@@ -83,11 +83,29 @@ jobs:
           path: out/reports/jacoco/html/
           if-no-files-found: warn
 
+      - name: Validate SonarQube Configuration
+        run: |
+          if [ -z "${{ secrets.SONAR_TOKEN }}" ]; then
+            echo "::error::SONAR_TOKEN secret is missing! Please add SONAR_TOKEN to your GitHub repository secrets (Settings -> Secrets and variables -> Actions)."
+            exit 1
+          fi
+          
+          HOST_URL="${{ secrets.SONAR_HOST_URL }}"
+          if [ -n "$HOST_URL" ]; then
+            if [[ ! "$HOST_URL" =~ ^https?:// ]]; then
+              echo "::error::SONAR_HOST_URL must start with 'http://' or 'https://' (current value: '$HOST_URL'). Please update your GitHub secret."
+              exit 1
+            fi
+            echo "Using SonarQube host: $HOST_URL"
+          else
+            echo "::notice::SONAR_HOST_URL secret was not set. Defaulting to https://sonarcloud.io (if using a private SonarQube server, add SONAR_HOST_URL to GitHub Secrets)."
+          fi
+
       - name: SonarQube Scanner
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL != '' && secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
         with:
           args: >
             -Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml
