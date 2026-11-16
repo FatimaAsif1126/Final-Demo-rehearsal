@@ -34,7 +34,7 @@ And paste this block in their place:
 
 ```yaml
       - name: Set up Java JDK
-        uses: actions/setup-java@8df1039502a140fb607b34f63777f576bac34953 # v4.3.0
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:
           distribution: 'temurin'
           java-version: '17'
