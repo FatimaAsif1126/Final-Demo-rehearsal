@@ -29,6 +29,22 @@ class SecurityAuditServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw IllegalStateException when MD5 algorithm is unavailable")
+    void testHashDataAlgorithmUnavailable() {
+        java.security.Provider sun = java.security.Security.getProvider("SUN");
+        try {
+            java.security.Security.removeProvider("SUN");
+            IllegalStateException ex = assertThrows(IllegalStateException.class, () -> auditService.hashData("test"));
+            assertTrue(ex.getCause() instanceof java.security.NoSuchAlgorithmException);
+            assertEquals("Algorithm unavailable", ex.getMessage());
+        } finally {
+            if (sun != null) {
+                java.security.Security.addProvider(sun);
+            }
+        }
+    }
+
+    @Test
     @DisplayName("Should validate token patterns and handle null or blank")
     void testValidateToken() {
         assertFalse(auditService.validateToken(null));
