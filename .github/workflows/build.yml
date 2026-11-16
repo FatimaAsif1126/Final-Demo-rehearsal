@@ -1,104 +1,68 @@
-name: Build, Test & SonarQube Scan
-
+name: SonarQube
 on:
   push:
     branches:
       - main
-      - master
   pull_request:
     types: [opened, synchronize, reopened]
-  workflow_dispatch:
-
 jobs:
-  build-test-analyze:
-    name: Build, Test & SonarQube Scan
-    runs-on: ubuntu-latest
-
+  build:
+    name: Build and analyze
+    runs-on: windows-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          fetch-depth: 0 # Shallow clones disabled for better Sonar analysis
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      jobs:
+  # 1. Run the test suite defined in test.yml
+  test:
+    name: Run Unit Tests
+    uses: ./.github/workflows/test.yml
 
-      - name: Set up Java JDK
-        uses: actions/setup-java@v4
+  # 2. Run SonarCloud scan using the artifacts from test.yml
+  build:
+    name: Build and analyze
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          fetch-depth: 0
 
-      - name: Cache Testing & Coverage Tools
-        id: cache-tools
-        uses: actions/cache@v4
-        with:
-          path: lib
-          key: pure-java-testing-tools-v1
-
-      - name: Download JUnit & JaCoCo Standalone Tools
-        if: steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p lib
-          echo "Downloading JUnit 5 Console Standalone..."
-          curl -sLo lib/junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.2/junit-platform-console-standalone-1.10.2.jar
-          
-          echo "Downloading JaCoCo CLI and Agent..."
-          curl -sLo jacoco.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.12/jacoco-0.8.12.zip
-          unzip -q jacoco.zip -d jacoco-temp
-          cp jacoco-temp/lib/jacocoagent.jar lib/
-          cp jacoco-temp/lib/jacococli.jar lib/
-          rm -rf jacoco.zip jacoco-temp
-          echo "Testing tools downloaded successfully."
-
-      - name: Compile Main Sources
-        run: |
-          mkdir -p out/classes
-          javac --release 17 -d out/classes $(find src/main/java -name "*.java")
-
-      - name: Compile Test Sources
-        run: |
-          mkdir -p out/test-classes
-          javac --release 17 -cp "out/classes:lib/*" -d out/test-classes $(find src/test/java -name "*.java")
-
-      - name: Run Unit Tests with JaCoCo Coverage Agent
-        run: |
-          mkdir -p out/reports/junit out/reports/jacoco
-          java -javaagent:lib/jacocoagent.jar=destfile=out/reports/jacoco.exec,includes=com.example.sqe.* \
-            -jar lib/junit-platform-console-standalone.jar \
-            execute \
-            --class-path out/classes \
-            --class-path out/test-classes \
-            --scan-class-path \
-            --reports-dir=out/reports/junit
-
-      - name: Generate JaCoCo XML & HTML Coverage Reports
-        run: |
-          java -jar lib/jacococli.jar report out/reports/jacoco.exec \
-            --classfiles out/classes \
-            --sourcefiles src/main/java \
-            --xml out/reports/jacoco/jacoco.xml \
-            --html out/reports/jacoco/html
-          echo "JaCoCo Coverage report generated at out/reports/jacoco/jacoco.xml"
-
-      - name: Upload JaCoCo HTML Coverage Report Artifact
-        uses: actions/upload-artifact@v4
+      # ⬇️ ADD THIS INSTEAD OF THE COMMENTED PLACEHOLDER:
+      - name: Download Test & Coverage Artifacts from test.yml
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: jacoco-coverage-report
-          path: out/reports/jacoco/html/
-          if-no-files-found: warn
+          path: out/
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
         with:
           args: >
             -Dsonar.organization=sonarqubecloudsqetest
             -Dsonar.projectKey=SonarQubeCloudSQETest_java-sonar-lab
-            -Dsonar.sources=src/main/java
-            -Dsonar.tests=src/test/java
-            -Dsonar.java.binaries=out/classes
-            -Dsonar.java.test.binaries=out/test-classes
-            -Dsonar.coverage.inclusions=src/main/java/**/*.java
-            -Dsonar.coverage.exclusions=**/*.ps1,**/*.sh,**/*.bat,**/*.cmd,src/test/**,**/*Test.java,**/test/**
-            -Dsonar.exclusions=*.ps1,*.sh,*.bat,*.cmd
             -Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml
+      - name: Cache SonarQube packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=sonarqubecloudsqetest
+            -Dsonar.projectKey=SonarQubeCloudSQETest_java-sonar-lab
