@@ -20,18 +20,20 @@ A zero-dependency, pure Java project structure configured for **SonarQube / Sona
 
 ---
 
-## 🔄 What to Paste in `build.yml`
+## 🔄 What to Paste in `build.yml` (Windows Runner Compatible)
 
-In `.github/workflows/build.yml`, delete these 3 lines:
+Keep `runs-on: windows-latest` in [`.github/workflows/build.yml`](file:///d:/WorkSheets/XFAST/SQEJavaTest/.github/workflows/build.yml).
 
+### Step 1: Replace Placeholder Comments
+
+In [`.github/workflows/build.yml`](file:///d:/WorkSheets/XFAST/SQEJavaTest/.github/workflows/build.yml), locate lines 16–18:
 ```yaml
       # This step should build, test and generate coverage reports
       # - name: Build and test
       #   run: <build + test + generate coverage reports>
 ```
 
-And paste this block in their place:
-
+Replace those 3 lines with this exact Windows-compatible block:
 ```yaml
       - name: Set up Java JDK
         uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
@@ -45,17 +47,40 @@ And paste this block in their place:
           mkdir -p lib out/classes out/test-classes out/reports/junit out/reports/jacoco
           curl --proto '=https' --proto-redir '=https' --tlsv1.2 -sSfLo lib/junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.2/junit-platform-console-standalone-1.10.2.jar
           curl --proto '=https' --proto-redir '=https' --tlsv1.2 -sSfLo jacoco.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.12/jacoco-0.8.12.zip
-          unzip -q jacoco.zip -d jacoco-temp
+          unzip -q -o jacoco.zip -d jacoco-temp
           cp jacoco-temp/lib/jacocoagent.jar lib/
           cp jacoco-temp/lib/jacococli.jar lib/
           rm -rf jacoco.zip jacoco-temp
-          javac --release 17 -d out/classes $(find src/main/java -name "*.java")
-          javac --release 17 -cp "out/classes:lib/*" -d out/test-classes $(find src/test/java -name "*.java")
+          find src/main/java -name "*.java" > sources_main.txt
+          javac --release 17 -d out/classes @sources_main.txt
+          find src/test/java -name "*.java" > sources_test.txt
+          javac --release 17 -cp "out/classes;lib/*" -d out/test-classes @sources_test.txt
           java -javaagent:lib/jacocoagent.jar=destfile=out/reports/jacoco.exec,includes=com.example.sqe.* -jar lib/junit-platform-console-standalone.jar execute --class-path out/classes --class-path out/test-classes --scan-class-path --reports-dir=out/reports/junit
           java -jar lib/jacococli.jar report out/reports/jacoco.exec --classfiles out/classes --sourcefiles src/main/java --xml out/reports/jacoco/jacoco.xml
 ```
 
-*(Also make sure `-Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml` is in the `args: >` section of the SonarQube Scan step).*
+> [!NOTE]
+> **Why this works seamlessly on `windows-latest`:**
+> - `shell: bash`: Executes inside Git Bash (pre-installed on all Windows GitHub runners).
+> - `-cp "out/classes;lib/*"`: Windows `javac.exe` requires a semicolon (`;`) classpath separator instead of a colon (`:`). The enclosing quotes prevent bash from interpreting the semicolon as a command separator.
+> - `@sources_main.txt` & `@sources_test.txt`: Avoids Windows CLI argument length and path escaping limitations.
+
+---
+
+### Step 2: Add JaCoCo Report Path to SonarQube Scan
+
+At the bottom of [`.github/workflows/build.yml`](file:///d:/WorkSheets/XFAST/SQEJavaTest/.github/workflows/build.yml), append `-Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml` to `args: >`:
+```yaml
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=sonarqubecloudsqetest
+            -Dsonar.projectKey=SonarQubeCloudSQETest_java-sonar-lab
+            -Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml
+```
 
 ---
 
