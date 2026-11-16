@@ -6,7 +6,7 @@ A zero-dependency, pure Java project structure configured for **SonarQube / Sona
 
 ## 📑 Table of Contents
 1. [Project Overview](#-project-overview)
-2. [What to Add to `build.yml` if Overwritten](#-what-to-add-to-buildyml-if-overwritten)
+2. [What to Paste in `build.yml`](#-what-to-paste-in-buildyml)
 3. [SonarCloud Code Issues & Solutions Guide (`SecurityAuditService.java`)](#-sonarcloud-code-issues--solutions-guide-securityauditservicejava)
 4. [SonarCloud Workflow Security Rules Fixed in `test.yml`](#-sonarcloud-workflow-security-rules-fixed-in-testyml)
 
@@ -20,64 +20,42 @@ A zero-dependency, pure Java project structure configured for **SonarQube / Sona
 
 ---
 
-## 🔄 What to Add to `build.yml` Instead of the Placeholder Comment
+## 🔄 What to Paste in `build.yml`
 
-In SonarCloud's default `build.yml`, you will see this comment:
+In `.github/workflows/build.yml`, delete these 3 lines:
+
 ```yaml
       # This step should build, test and generate coverage reports
       # - name: Build and test
       #   run: <build + test + generate coverage reports>
 ```
 
-In GitHub Actions, a workflow file (`.yml`) cannot be invoked inside `steps:`. You have two straightforward ways to run the tests:
-
----
-
-Call `test.yml` as a Reusable Workflow Job (Recommended)
-
-Let `test.yml` handle all testing and coverage generation, then pass the results to the SonarQube job in `build.yml`:
+And paste this block in their place:
 
 ```yaml
-jobs:
-  # 1. Run the test suite defined in test.yml
-  test:
-    name: Run Unit Tests
-    uses: ./.github/workflows/test.yml
-
-  # 2. Run SonarCloud scan using the artifacts from test.yml
-  build:
-    name: Build and analyze
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Java JDK
+        uses: actions/setup-java@8df1039502a140fb607b34f63777f576bac34953 # v4.3.0
         with:
-          fetch-depth: 0
+          distribution: 'temurin'
+          java-version: '17'
 
-      # ⬇️ ADD THIS INSTEAD OF THE COMMENTED PLACEHOLDER:
-      - name: Download Test & Coverage Artifacts from test.yml
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        with:
-          name: jacoco-coverage-report
-          path: out/
-
-      - name: Cache SonarQube packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.organization=sonarqubecloudsqetest
-            -Dsonar.projectKey=SonarQubeCloudSQETest_java-sonar-lab
-            -Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml
+      - name: Build, Test and Generate JaCoCo Coverage
+        shell: bash
+        run: |
+          mkdir -p lib out/classes out/test-classes out/reports/junit out/reports/jacoco
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -sSfLo lib/junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.2/junit-platform-console-standalone-1.10.2.jar
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -sSfLo jacoco.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.12/jacoco-0.8.12.zip
+          unzip -q jacoco.zip -d jacoco-temp
+          cp jacoco-temp/lib/jacocoagent.jar lib/
+          cp jacoco-temp/lib/jacococli.jar lib/
+          rm -rf jacoco.zip jacoco-temp
+          javac --release 17 -d out/classes $(find src/main/java -name "*.java")
+          javac --release 17 -cp "out/classes:lib/*" -d out/test-classes $(find src/test/java -name "*.java")
+          java -javaagent:lib/jacocoagent.jar=destfile=out/reports/jacoco.exec,includes=com.example.sqe.* -jar lib/junit-platform-console-standalone.jar execute --class-path out/classes --class-path out/test-classes --scan-class-path --reports-dir=out/reports/junit
+          java -jar lib/jacococli.jar report out/reports/jacoco.exec --classfiles out/classes --sourcefiles src/main/java --xml out/reports/jacoco/jacoco.xml
 ```
+
+*(Also make sure `-Dsonar.coverage.jacoco.xmlReportPaths=out/reports/jacoco/jacoco.xml` is in the `args: >` section of the SonarQube Scan step).*
 
 ---
 
