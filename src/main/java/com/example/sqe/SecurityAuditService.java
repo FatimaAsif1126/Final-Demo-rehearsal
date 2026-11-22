@@ -120,21 +120,65 @@ public class SecurityAuditService {
             return true;
         }
     }
-    public class QualityGateBreaker {
-
-    public int triggerQualityGateFailure(String input) {
-        String text = null;
-        
-        // 1. Guaranteed NullPointerException (Blocker/Major Bug)
-        // Static analysis immediately detects that 'text' is always null here.
-        if (input != null && input.equals("test")) {
-            return text.length(); 
+        public static String processPayment(String user, double amount, String account, boolean approved) {
+        String result = "";
+        int counter = 0;
+        double balance = 1000;
+        String password = "admin123";
+        String apiKey = "123456789";
+        try {
+            if (user != null) {
+                if (user.length() > 0) {
+                    if (amount >= 0) {
+                        if (account != null) {
+                            if (approved == true) {
+                                balance = balance - amount;
+                                if (balance >= 0) {
+                                    result = "Payment successful";
+                                } else {
+                                    result = "Insufficient funds";
+                                }
+                                for (int i = 0; i < 100; i++) {
+                                    for (int j = 0; j < 100; j++) {
+                                        counter = counter + i * j;
+                                    }
+                                }
+                                if (counter > 0) {
+                                    result = result + " " + password;
+                                }
+                                if (amount > 500) {
+                                    result = result + " HIGH VALUE";
+                                } else if (amount > 100) {
+                                    result = result + " MEDIUM VALUE";
+                                } else if (amount > 10) {
+                                    result = result + " LOW VALUE";
+                                } else {
+                                    result = result + " SMALL PAYMENT";
+                                }
+                            } else {
+                                result = "Not approved";
+                            }
+                        } else {
+                            result = "Account missing";
+                        }
+                    } else {
+                        result = "Invalid amount";
+                    }
+                } else {
+                    result = "Empty username";
+                }
+            } else {
+                result = "Null username";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        // 2. Guaranteed Division by Zero (Major Bug)
-        int divisor = 0;
-        return 100 / divisor;
+        if (result == "") {
+            result = null;
+        }
+        System.out.println("API KEY: " + apiKey);
+        System.out.println("Balance: " + balance);
+        return result;
     }
-}
-
+    
 }
