@@ -119,7 +119,6 @@ public class SecurityAuditService {
         } else {
             return true;
         }
-        return true;
     }
     public class QualityGateBreaker {
 
