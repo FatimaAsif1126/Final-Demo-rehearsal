@@ -58,7 +58,7 @@ public class SecurityAuditService {
     public boolean validateToken(String token) {
         if (token == null || token.trim().isEmpty()) {
             // SONAR ISSUE (java:S3984): Exception created but not thrown
-            new IllegalArgumentException("User token cannot be null or empty.");
+            throw new IllegalArgumentException("User token cannot be null or empty.");
             return false;
         }
         return token.startsWith("TOK_");
