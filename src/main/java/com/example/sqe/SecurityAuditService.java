@@ -29,7 +29,7 @@ public class SecurityAuditService {
         }
         try {
             // SONAR ISSUE (java:S4790): Insecure hashing algorithm MD5
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] hashBytes = md.digest(input.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             for (byte b : hashBytes) {
