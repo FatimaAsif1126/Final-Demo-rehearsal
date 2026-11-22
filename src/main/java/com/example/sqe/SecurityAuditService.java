@@ -121,4 +121,21 @@ public class SecurityAuditService {
         }
         return true;
     }
+    public class QualityGateBreaker {
+
+    public int triggerQualityGateFailure(String input) {
+        String text = null;
+        
+        // 1. Guaranteed NullPointerException (Blocker/Major Bug)
+        // Static analysis immediately detects that 'text' is always null here.
+        if (input != null && input.equals("test")) {
+            return text.length(); 
+        }
+
+        // 2. Guaranteed Division by Zero (Major Bug)
+        int divisor = 0;
+        return 100 / divisor;
+    }
+}
+
 }
