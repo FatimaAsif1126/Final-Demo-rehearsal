@@ -16,9 +16,28 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      # This step should build, test and generate coverage reports
-      # - name: Build and test
-      #   run: <build + test + generate coverage reports>
+      - name: Set up Java JDK
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build, Test and Generate JaCoCo Coverage
+        shell: bash
+        run: |
+          mkdir -p lib out/classes out/test-classes out/reports/junit out/reports/jacoco
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -sSfLo lib/junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.2/junit-platform-console-standalone-1.10.2.jar
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -sSfLo jacoco.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.12/jacoco-0.8.12.zip
+          unzip -q -o jacoco.zip -d jacoco-temp
+          cp jacoco-temp/lib/jacocoagent.jar lib/
+          cp jacoco-temp/lib/jacococli.jar lib/
+          rm -rf jacoco.zip jacoco-temp
+          find src/main/java -name "*.java" > sources_main.txt
+          javac --release 17 -d out/classes @sources_main.txt
+          find src/test/java -name "*.java" > sources_test.txt
+          javac --release 17 -cp "out/classes;lib/*" -d out/test-classes @sources_test.txt
+          java -javaagent:lib/jacocoagent.jar=destfile=out/reports/jacoco.exec,includes=com.example.sqe.* -jar lib/junit-platform-console-standalone.jar execute --class-path out/classes --class-path out/test-classes --scan-class-path --reports-dir=out/reports/junit
+          java -jar lib/jacococli.jar report out/reports/jacoco.exec --classfiles out/classes --sourcefiles src/main/java --xml out/reports/jacoco/jacoco.xml
       - name: Cache SonarQube packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
