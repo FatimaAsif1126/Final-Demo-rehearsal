@@ -55,4 +55,32 @@ public class Calculator {
         }
         return true;
     }
+    public int calculateFirst() {
+    int total = 0;
+    total += 10;
+    total += 20;
+    total += 30;
+    total += 40;
+    total += 50;
+    total += 60;
+    total += 70;
+    total += 80;
+    total += 90;
+    return total;
 }
+
+    public int calculateSecond() {
+    int total = 0;
+    total += 10;
+    total += 20;
+    total += 30;
+    total += 40;
+    total += 50;
+    total += 60;
+    total += 70;
+    total += 80;
+    total += 90;
+    return total;
+}
+}
+
